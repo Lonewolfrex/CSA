@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Rent Books - CSA Library{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0"><i class="fas fa-hand-holding-heart me-2"></i>Rent Books</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {% for book in books %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card book-card h-100 shadow-sm">
+                {% if book.cover_image %}
+                <img src="{{ book.cover_image.url }}" class="card-img-top book-card-img" alt="{{ book.title }}">
+                {% else %}
+                <div class="card-img-top book-card-img bg-light d-flex align-items-center justify-content-center">
+                    <i class="fas fa-book fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h6 class="fw-bold">{{ book.title|truncatechars:50 }}</h6>
+                    <p class="text-muted small mb-3">{{ book.author }}</p>
+                    <div class="mb-3">
+                        {% for genre in book.genre.all %}
+                        <span class="badge me-1" style="background: {{ genre.color }};">{{ genre.genre }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="h6 fw-bold text-primary">${{ book.price }}/day</span>
+                        <span class="badge bg-success">Available</span>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="book_id" value="{{ book.id }}">
+                        <div class="input-group">
+                            <!-- ✅ FIXED: No more mul filter! -->
+                            <select class="form-select" name="rent_days">
+                                <option value="7">1 Week (${{ book.price|floatformat:2 }}/week)</option>
+                                <option value="14">2 Weeks (${{ book.price|floatformat:2 }} x 2)</option>
+                                <option value="30">1 Month (${{ book.price|floatformat:2 }} x 4)</option>
+                            </select>
+                            <button type="submit" class="btn btn-success">Rent Now</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                <h4>No books available</h4>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

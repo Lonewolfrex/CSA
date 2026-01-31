@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Donate Books - CSA Library{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0"><i class="fas fa-gift me-2"></i>Donate Books</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Help grow our library by donating your books!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-heart fa-4x text-warning mb-4"></i>
+                    <h3 class="mb-3">Thank you for your generosity!</h3>
+                    <p class="text-muted mb-4 lead">Share details about the books you'd like to donate:</p>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" placeholder="Book Title *" required>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" placeholder="Author">
+                            </div>
+                            <div class="col-12">
+                                <textarea class="form-control" rows="3" placeholder="Book condition and details..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="file" class="form-control" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="number" class="form-control" placeholder="Quantity">
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg px-5">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Donation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Return Books - CSA Library{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0"><i class="fas fa-undo me-2"></i>Return Books</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if transactions %}
+    <div class="row g-4">
+        {% for transaction in transactions %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="flex-shrink-0">
+                            {% if transaction.book.cover_image %}
+                            <img src="{{ transaction.book.cover_image.url }}" class="rounded" width="60" alt="">
+                            {% else %}
+                            <div class="bg-light rounded p-2">
+                                <i class="fas fa-book text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-1">{{ transaction.book.title }}</h6>
+                            <p class="text-muted small mb-1">{{ transaction.book.author }}</p>
+                            <span class="badge bg-info">{{ transaction.get_transaction_type_display }}</span>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary">Return Book</button>
+                        <button class="btn btn-outline-secondary btn-sm">View Details</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+        <i class="fas fa-inbox fa-5x text-muted mb-4"></i>
+        <h4 class="text-muted mb-3">No books to return</h4>
+        <p class="text-muted">You don't have any rented books to return right now.</p>
+        <a href="{% url 'catalog:rent_books' %}" class="btn btn-primary">Browse Books to Rent</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
