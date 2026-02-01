@@ -9,6 +9,7 @@ from .models import Book, Transaction, Genre, Author
 from .forms import BuyBookForm, RentBookForm
 from django.conf import settings
 import os
+from django.db import transaction
 
 @login_required
 def home(request):
@@ -42,59 +43,79 @@ def profile(request):
 
 @login_required
 def buy_books(request):
-    books = Book.objects.filter(is_available=True, stock_count__gt=0).select_related('author').prefetch_related('genre')
-    paginator = Paginator(books, 12)
+    books = Book.objects.filter(is_available=True).order_by('-available_stock')
+    paginator = Paginator(books, 10)
     page_number = request.GET.get('page')
-    books = paginator.get_page(page_number)
+    page_obj = paginator.get_page(page_number)
     
     if request.method == 'POST':
         book_id = request.POST.get('book_id')
         quantity = int(request.POST.get('quantity', 1))
-        book = get_object_or_404(Book, id=book_id, is_available=True, stock_count__gte=quantity)
         
-        Transaction.objects.create(
-            user=request.user,
-            book=book,
-            transaction_type='buy',
-            status='completed',
-            quantity=quantity,
-            amount=book.price * Decimal(quantity)
-        )
-        
-        book.stock_count -= quantity
-        book.save()
-        
-        messages.success(request, f'Successfully purchased {quantity} copy/copies of "{book.title}"!')
-        return redirect('catalog:buy_books')
+        book = get_object_or_404(Book, id=book_id)
+        with transaction.atomic():
+            if book.available_stock >= quantity:
+                book.available_stock -= quantity
+                book.save()
+                
+                # Create transaction record (SIMULATED payment)
+                Transaction.objects.create(
+                    user=request.user,
+                    book=book,
+                    transaction_type='buy',
+                    status='completed',
+                    quantity=quantity,
+                    total_amount=book.price * quantity
+                )
+                messages.success(request, f'✅ Purchased {quantity}x {book.title}! Stock left: {book.available_stock}')
+                return redirect('catalog:buy_books')
+            else:
+                messages.error(request, f'❌ Not enough stock! Only {book.available_stock} available.')
     
-    return render(request, 'buy_books.html', {'books': books})
+    context = {
+        'page_obj': page_obj,
+        'view_mode': 'table' if request.GET.get('view') == 'table' else 'cards',
+    }
+    return render(request, 'buy_books.html', context)
+
 
 @login_required
 def rent_books(request):
-    books = Book.objects.filter(is_available=True, stock_count__gt=0).select_related('author').prefetch_related('genre')
+    books = Book.objects.filter(is_available=True).order_by('-available_stock')
+    paginator = Paginator(books, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
     if request.method == 'POST':
         book_id = request.POST.get('book_id')
-        rent_days = int(request.POST.get('rent_days'))
-        book = get_object_or_404(Book, id=book_id, is_available=True, stock_count__gt=0)
+        rent_days = int(request.POST.get('rent_days', 7))  # ✅ FIX: Convert to int
         
-        Transaction.objects.create(
-            user=request.user,
-            book=book,
-            transaction_type='rent',
-            status='completed',
-            quantity=1,
-            amount=book.price * Decimal(rent_days),
-            rent_days=rent_days
-        )
-        
-        book.stock_count -= 1
-        book.save()
-        
-        messages.success(request, f'Successfully rented "{book.title}" for {rent_days} days!')
-        return redirect('catalog:rent_books')
+        book = get_object_or_404(Book, id=book_id)
+        with transaction.atomic():
+            if book.available_stock >= 1:
+                book.available_stock -= 1
+                book.save()
+                
+                total_amount = book.price * rent_days  # ✅ Now works!
+                Transaction.objects.create(
+                    user=request.user,
+                    book=book,
+                    transaction_type='rent',
+                    status='pending',
+                    quantity=1,
+                    rent_days=rent_days,
+                    total_amount=total_amount
+                )
+                messages.success(request, f'Rented {book.title} for {rent_days} days!')
+                return redirect('catalog:rent_books')
+            else:
+                messages.error(request, f'{book.title} is not available!')
     
-    return render(request, 'rent_books.html', {'books': books})
+    context = {
+        'page_obj': page_obj,
+        'view_mode': 'table' if request.GET.get('view') == 'table' else 'cards',
+    }
+    return render(request, 'rent_books.html', context)
 
 @login_required
 def return_books(request):

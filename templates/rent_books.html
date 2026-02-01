@@ -1,23 +1,106 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}Rent Books - CSA Library{% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="mb-0"><i class="fas fa-hand-holding-heart me-2"></i>Rent Books</h2>
-                </div>
+    <!-- View Toggle -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="btn-group" role="group">
+                <a href="?view=cards" class="btn btn-outline-success {% if view_mode != 'table' %}active{% endif %}">
+                    <i class="fas fa-th-large"></i> Cards
+                </a>
+                <a href="?view=table" class="btn btn-outline-success {% if view_mode == 'table' %}active{% endif %}">
+                    <i class="fas fa-list"></i> Table ({{ page_obj.paginator.count }})
+                </a>
             </div>
         </div>
     </div>
 
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ✅ TABLE VIEW -->
+    {% if view_mode == 'table' %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-hand-holding-heart me-2"></i>Rent Inventory</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Cover</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Genres</th>
+                            <th>Price/Day</th>
+                            <th>Stock</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for book in page_obj %}
+                        <tr>
+                            <td>{% if book.cover_image %}<img src="{{ book.cover_image.url }}" class="rounded" width="50">{% else %}<i class="fas fa-book fa-2x text-muted"></i>{% endif %}</td>
+                            <td>{{ book.title|truncatechars:40 }}</td>
+                            <td>{{ book.author }}</td>
+                            <td>{% for genre in book.genre.all %}<span class="badge" style="background: {{ genre.color }};">{{ genre.genre }}</span>{% endfor %}</td>
+                            <td><strong>${{ book.price }}/day</strong></td>
+                            <td>{% if book.is_available %}<span class="badge bg-success">{{ book.available_stock }} available</span>{% else %}<span class="badge bg-danger">Not Available</span>{% endif %}</td>
+                            <td>
+                                {% if book.is_available %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="book_id" value="{{ book.id }}">
+                                    <div class="input-group input-group-sm">
+                                        <select name="rent_days" class="form-select">
+                                            <option value="7">1 Week (${{ book.price|floatformat:2 }})</option>
+                                            <option value="14">2 Weeks (${{ book.price|add:book.price|floatformat:2 }})</option>
+                                            <option value="30">1 Month (${{ book.price|add:book.price|add:book.price|add:book.price|floatformat:2 }})</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-success btn-sm">Rent</button>
+                                    </div>
+                                </form>
+                                {% else %}
+                                <button class="btn btn-secondary btn-sm" disabled>Not Available</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No books available for rent</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav class="d-flex justify-content-center py-3">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page=1&view=table">First</a></li><li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&view=table">Previous</a></li>{% endif %}
+                    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&view=table">Next</a></li><li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&view=table">Last</a></li>{% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ✅ CARDS VIEW -->
+    {% else %}
     <div class="row g-4">
-        {% for book in books %}
+        {% for book in page_obj %}
         <div class="col-lg-4 col-md-6">
-            <div class="card book-card h-100 shadow-sm">
+            <div class="card book-card h-100 shadow-sm border-0 hover-lift">
                 {% if book.cover_image %}
                 <img src="{{ book.cover_image.url }}" class="card-img-top book-card-img" alt="{{ book.title }}">
                 {% else %}
@@ -34,33 +117,57 @@
                         {% endfor %}
                     </div>
                     <div class="d-flex justify-content-between mb-3">
-                        <span class="h6 fw-bold text-primary">${{ book.price }}/day</span>
-                        <span class="badge bg-success">Available</span>
+                        <span class="h6 fw-bold text-success">${{ book.price }}/day</span>
+                        {% if book.is_available %}
+                        <span class="badge bg-success fs-6">{{ book.available_stock }} left</span>
+                        {% else %}
+                        <span class="badge bg-danger fs-6">Not Available</span>
+                        {% endif %}
                     </div>
+                    {% if book.is_available %}
                     <form method="post">
                         {% csrf_token %}
                         <input type="hidden" name="book_id" value="{{ book.id }}">
                         <div class="input-group">
-                            <!-- ✅ FIXED: No more mul filter! -->
-                            <select class="form-select" name="rent_days">
-                                <option value="7">1 Week (${{ book.price|floatformat:2 }}/week)</option>
-                                <option value="14">2 Weeks (${{ book.price|floatformat:2 }} x 2)</option>
-                                <option value="30">1 Month (${{ book.price|floatformat:2 }} x 4)</option>
+                            <select name="rent_days" class="form-select">
+                                <option value="7">1 Week (${{ book.price|floatformat:2 }})</option>
+                                <option value="14">2 Weeks (${{ book.price|add:book.price|floatformat:2 }})</option>
+                                <option value="30">1 Month (${{ book.price|add:book.price|add:book.price|add:book.price|floatformat:2 }})</option>
                             </select>
-                            <button type="submit" class="btn btn-success">Rent Now</button>
+                            <button type="submit" class="btn btn-success w-100">Rent Now</button>
                         </div>
                     </form>
+                    {% else %}
+                    <button class="btn btn-secondary w-100" disabled>Not Available</button>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% empty %}
         <div class="col-12">
             <div class="text-center py-5">
-                <i class="fas fa-book fa-4x text-muted mb-3"></i>
-                <h4>No books available</h4>
+                <i class="fas fa-hand-holding-heart fa-4x text-muted mb-3"></i>
+                <h4>No books available for rent</h4>
             </div>
         </div>
         {% endfor %}
     </div>
+
+    <!-- Cards Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="d-flex justify-content-center py-3">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page=1&view=cards">First</a></li><li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&view=cards">Previous</a></li>{% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&view=cards">Next</a></li><li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&view=cards">Last</a></li>{% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% endif %}
 </div>
+
+<style>
+.hover-lift:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+.book-card-img { height: 250px; object-fit: cover; }
+</style>
 {% endblock %}
