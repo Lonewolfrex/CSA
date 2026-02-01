@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: csalibrary
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword123
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8082:8000"
+    environment:
+      - DB_NAME=csalibrary
+      - DB_USER=postgres
+      - DB_PASSWORD=yourpassword123
+      - DB_HOST=db
+      - SECRET_KEY=django-insecure-your-temp-key-here-change-me
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
