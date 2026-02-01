@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.humanize',
-
+    'whitenoise.runserver_nostatic',
     # Third-party apps
     'allauth',
     'allauth.account',
@@ -52,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware'
 ]
 
 ROOT_URLCONF = 'csa.urls'
@@ -187,3 +188,4 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # File Uploads
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
